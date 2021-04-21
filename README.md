@@ -1,2 +1,2 @@
-# cses-solutions in Python
+# cses-solutions in C++
 https://cses.fi/problemset/
