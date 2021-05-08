@@ -1,165 +1,162 @@
-#include <bits/stdc++.h>
-
-using namespace std;
+// https://cses.fi/problemset/task/1194/
+#include<bits/stdc++.h>
+ 
+#define SZ 1001
 #define mp make_pair
 #define ii pair<int, int>
-#define f first
-#define s second
-#define int long long int
-
-int m, n;
-vector<ii> monster_positions;
-vector<vector<int>> graph;
-map<ii, ii> parent_map;
-ii start, __end;
-vector<ii> directions = {{-1, 0}, {1, 0}, {0, 1}, {0, -1}};
-
-void preprocess_monster_movement();
-bool isValid(int, int, int);
-bool escaped(int, int, int);
-bool player_movement();
-
-int32_t main()
-{
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
-
-    cin >> m >> n;
-
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            graph[i][j] = INT_MAX;
+using namespace std;
+int graph[SZ][SZ];
+int previousPath[SZ][SZ];
+vector<ii > monster_positions;
+ii playerStartPos, playerEscapePos;
+vector<ii > moves = {{1,  0},
+                     {-1, 0},
+                     {0,  1},
+                     {0,  -1}};
+char directions[] = {'D', 'U', 'R', 'L'};
+int rows, cols;
+ 
+bool isValidMovement(int x, int y, int time) {
+    if (x < 0 || x >= rows || y < 0 || y >= cols) {
+        // cannot move outside the grid
+        return false;
+    }
+ 
+    // this represent that a monster has already reached to this cell before this time
+    if (graph[x][y] <= time) {
+        return false;
+    }
+ 
+    return true;
+}
+ 
+void preprocess_monster_movement() {
+    queue<pair<ii, int>> queue;
+    // multi value BFS, this will avoid overwriting same cell again and again by monsters
+    for (auto monsterPos : monster_positions) {
+        queue.push(mp(monsterPos, 0));
+    }
+ 
+    while (!queue.empty()) {
+ 
+        pair<ii, int> curr = queue.front();
+        int cx = curr.first.first;
+        int cy = curr.first.second;
+        int currTime = curr.second;
+        queue.pop();
+        ++currTime;
+ 
+        for (auto direction : moves) {
+            int newX = cx + direction.first;
+            int newY = cy + direction.second;
+ 
+            if (isValidMovement(newX, newY, currTime)) {
+                graph[newX][newY] = currTime;
+                queue.push(mp(mp(newX, newY), currTime));
+            }
         }
     }
-
+}
+ 
+bool playerEscaped(int x, int y, int time) {
+    if (!isValidMovement(x, y, time)) {
+        // if the monster reaches to a boundary cell first then that cannot be considered as escape point
+        return false;
+    }
+    // player has reached a boundary position before any monster
+ 
+    if (x == 0 || y == 0 || x == rows - 1 || y == cols - 1) {
+        return true;
+    }
+ 
+    return false; // for any other cell, it is not a escape point
+}
+ 
+bool player_movement() {
+    queue<pair<ii, int>> queue;
+ 
+    queue.push(mp(playerStartPos, 0));
+ 
+    while (!queue.empty()) {
+        pair<ii, int> curr = queue.front();
+        curr = queue.front();
+        int cx = curr.first.first;
+        int cy = curr.first.second;
+        int currTime = curr.second;
+        queue.pop();
+        if (playerEscaped(cx, cy, currTime)) {
+            playerEscapePos = {cx, cy};
+            return true;
+        }
+ 
+        ++currTime;
+ 
+        for (int i = 0; i < 4; i++) {
+            int newX = cx + moves[i].first;
+            int newY = cy + moves[i].second;
+ 
+            if (isValidMovement(newX, newY, currTime)) {
+                previousPath[newX][newY] = i;
+                graph[cx][cy] = currTime; // visited
+                queue.push(mp(mp(newX, newY), currTime));
+            }
+        }
+    }
+    return false;
+}
+ 
+void printPath() {
+    ii curr = playerEscapePos;
+    vector<char> path;
+    while (curr.first != playerStartPos.first || curr.second != playerStartPos.second) {
+        int step = previousPath[curr.first][curr.second];
+        path.push_back(directions[step]);
+        curr = mp(curr.first - moves[step].first, curr.second - moves[step].second);
+    }
+    cout << path.size() << "\n";
+//    reverse(path.begin(), path.end());
+    for (int i = path.size() - 1; i >= 0; i--) {
+        cout << path[i];
+    }
+}
+ 
+int main() {
+    cin >> rows >> cols;
     char c;
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
             cin >> c;
-
-            if (c == '#')
-            {
+            if (c == 'A') {
+                // player
                 graph[i][j] = 0;
-            }
-            else if (c == 'M')
-            {
-                graph[i][j] = 0; // monster is already present here
-                monster_positions.push_back(mp(i, j));
-            }
-            else if (c == 'A')
-            {
+                playerStartPos = mp(i, j);
+            } else if (c == 'M') {
+                // monster
                 graph[i][j] = 0;
-                start = mp(i, j);
-            }
-            else
-            {
+                monster_positions.emplace_back(i, j);
+            } else if (c == '#') {
+                // wall
+                graph[i][j] = 0;
+            } else {
                 graph[i][j] = INT_MAX;
             }
         }
     }
-
-    if (start.f == 0 || start.s == 0 || start.f == m - 1 || start.s == n - 1)
-    {
+    if (playerStartPos.first == 0 || playerStartPos.first == rows - 1 || playerStartPos.second == 0 ||
+        playerStartPos.second == cols - 1) {
         cout << "YES\n";
         cout << 0;
         return 0;
     }
-
+ 
     preprocess_monster_movement();
-
-    if(!player_movement())
-    {
-        cout << "NO";
+ 
+    if (!player_movement()) {
+        cout << "NO\n";
         return 0;
     }
-
+ 
     cout << "YES\n";
-}
-/**
- * prepopulate the graph with minimum time requird 
- *  
- */
-void preprocess_monster_movement()
-{
-    queue<pair<pair<int, int>, int>> queue;
-    for (auto m : monster_positions)
-    {
-        queue.push(mp(m, 0));
-    }
-
-    while (!queue.empty())
-    {
-        int cx = queue.front().first.first;
-        int cy = queue.front().first.second;
-        int timer = queue.front().second;
-        queue.pop();
-        ++timer;
-        for (auto direction : directions)
-        {
-            int newX = cx + direction.first;
-            int newY = cy + direction.second;
-            if (isValid(newX, newY, timer))
-            {
-                graph[newX][newY] = timer; // this is the best time when we can reach the current position
-                queue.push(mp(mp(newX, newY), timer));
-            }
-        }
-    }
-}
-
-bool isValid(int x, int y, int timer)
-{
-    if (x < 0 || x >= m || y < 0 || y >= n)
-        return false;
-    if (graph[x][y] <= timer)
-        return false;
-    return true;
-}
-
-bool escaped(int x, int y, int timer)
-{
-    if (!isValid(x, y, timer))
-        return false;
-    if (x == 0 || y == 0 || x == m - 1 || y == n - 1)
-        return true;
-    return false;
-}
-
-bool player_movement()
-{
-    queue<pair<pair<int, int>, int>> q;
-    q.push(mp(start, 0));
-
-    while (!q.empty())
-    {
-        int cx = q.front().first.first;
-        int cy = q.front().first.second;
-        int timer = q.front().second;
-        q.pop();
-        ++timer;
-
-        for (ii direction : directions)
-        {
-            int nx = cx + direction.first;
-            int ny = cy + direction.second;
-
-            if (escaped(nx, ny, timer))
-            {
-                parent_map[mp(nx, ny)] = mp(cx, cy);
-                __end = mp(nx, ny);
-                return true;
-            }
-
-            if (isValid(nx, ny, timer))
-            {
-                parent_map[mp(nx, ny)] = mp(cx, cy);
-                q.push(mp(mp(nx, ny), timer));
-            }
-        }
-    }
-    return false;
+    printPath();
+ 
 }
