@@ -19,8 +19,8 @@ int solve(vector<int> arr, int n, int max) {
     }
 
     /*
-        dp[i][j] = what the maximum number of valid subarrays I can form if I put number j in 
-        array position i
+    
+        dp[i][v] = total number of ways to fill the array up to index i, if x[i] = v.
 
         if the array[i] contains some other number than j, then that is not a valid array because I 
         cannot replace an existing number in the array
