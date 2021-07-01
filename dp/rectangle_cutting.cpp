@@ -41,6 +41,9 @@ void solve() {
                 for(int k = 1; k < j; k++) {
                     dp[i][j] = min(dp[i][j], dp[i][k] + dp[i][j - k] + 1);
                 }
+
+                // the smaller cuts that we generate after cutting the rectangles are smaller subsets of
+                // the same problem which we have already solved
             }
         }
     }
